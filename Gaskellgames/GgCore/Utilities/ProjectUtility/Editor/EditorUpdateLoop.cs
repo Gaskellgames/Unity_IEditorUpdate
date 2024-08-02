@@ -40,7 +40,6 @@ namespace Gaskellgames.EditorOnly
             {
                 // ... subscribe all IEditorUpdate components to editor update loop
                 SubscribeToEditorUpdateLoop();
-                VerboseLogs.Log($"Components using IEditorUpdate: {editorUpdateList.Count}");
             }
         }
 
@@ -97,6 +96,8 @@ namespace Gaskellgames.EditorOnly
                     editorUpdateList.RemoveAt(index);
                 }
             }
+            
+            //Debug.Log($"Components using IEditorUpdate: {editorUpdateList.Count}");
         }
 
         /// <summary>
@@ -109,6 +110,8 @@ namespace Gaskellgames.EditorOnly
                 EditorApplication.update -= iEditorUpdate.EditorUpdate;
             }
             editorUpdateList.Clear();
+            
+            //Debug.Log($"Components using IEditorUpdate: {editorUpdateList.Count}");
         }
 
     } // class end
