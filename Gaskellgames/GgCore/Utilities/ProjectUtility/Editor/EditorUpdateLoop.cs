@@ -19,7 +19,7 @@ namespace Gaskellgames.EditorOnly
         /// </summary>
         static EditorUpdateLoop()
         {
-            EditorApplication.update += HandleIEditorUpdateCallbacks;
+            EditorApplication.hierarchyChanged += HandleIEditorUpdateCallbacks;
         }
         
         /// <summary>
@@ -34,12 +34,21 @@ namespace Gaskellgames.EditorOnly
                 if (0 < editorUpdateList.Count) { UnsubscribeFromEditorUpdateLoop(); }
                 return;
             }
-
-            // if list of all IEditorUpdate has changed ...
-            if (EditorUpdateListChanged())
+            
+            if (ComponentListUpdated(out List<IEditorUpdate> addedComponents, out List<IEditorUpdate> removedComponents))
             {
-                // ... subscribe all IEditorUpdate components to editor update loop
-                SubscribeToEditorUpdateLoop();
+                foreach (IEditorUpdate removedComponent in removedComponents)
+                {
+                    EditorApplication.update -= removedComponent.HandleEditorUpdate;
+                    Debug.Log($"Removed: {removedComponent.GetType()}");
+                }
+                foreach (IEditorUpdate addedComponent in addedComponents)
+                {
+                    EditorApplication.update += addedComponent.HandleEditorUpdate;
+                    Debug.Log($"Added: {addedComponent.GetType()}");
+                }
+            
+                Debug.Log($"IEditorUpdate: {editorUpdateList.Count}");
             }
         }
 
@@ -47,57 +56,39 @@ namespace Gaskellgames.EditorOnly
         /// Checks to see if the list of all IEditorUpdate has changed
         /// </summary>
         /// <returns>True if changed, False if not</returns>
-        private static bool EditorUpdateListChanged()
+        private static bool ComponentListUpdated(out List<IEditorUpdate> addedComponents, out List<IEditorUpdate> removedComponents)
         {
-            // get a list of all IEditorUpdate in the open scenes
+            // get all 'component type' in open scenes
             List<IEditorUpdate> newEditorUpdateList = new List<IEditorUpdate>();
             List<GameObject> rootObjects = SceneExtensions.GetAllRootGameObjects();
             foreach(GameObject root in rootObjects)
             {
-                IEditorUpdate[] iEditorUpdateArray = root.GetComponentsInChildren<IEditorUpdate>(true);
-                foreach (IEditorUpdate iEditorUpdate in iEditorUpdateArray)
+                IEditorUpdate[] componentsArray = root.GetComponentsInChildren<IEditorUpdate>(true);
+                foreach (IEditorUpdate debugEvent in componentsArray)
                 {
-                    newEditorUpdateList.Add(iEditorUpdate);
+                    newEditorUpdateList.Add(debugEvent);
                 }
             }
-
+        
             // check to see if the list has been updated
-            foreach (IEditorUpdate iEditorUpdate in editorUpdateList)
+            bool updated = false;
+            addedComponents = new List<IEditorUpdate>();
+            removedComponents = new List<IEditorUpdate>();
+            foreach (IEditorUpdate editorUpdate in editorUpdateList)
             {
-                if (newEditorUpdateList.Contains(iEditorUpdate)) { continue; }
-                UnsubscribeFromEditorUpdateLoop();
-                editorUpdateList = newEditorUpdateList;
-                return true;
+                if (newEditorUpdateList.Contains(editorUpdate)) { continue; }
+                removedComponents.Add(editorUpdate);
+                updated = true;
             }
-            foreach (IEditorUpdate iEditorUpdate in newEditorUpdateList)
+            foreach (IEditorUpdate editorUpdate in newEditorUpdateList)
             {
-                if (editorUpdateList.Contains(iEditorUpdate)) { continue; }
-                UnsubscribeFromEditorUpdateLoop();
-                editorUpdateList = newEditorUpdateList;
-                return true;
+                if (editorUpdateList.Contains(editorUpdate)) { continue; }
+                addedComponents.Add(editorUpdate);
+                updated = true;
             }
-            
-            return false;
-        }
 
-        /// <summary>
-        /// Subscribe a list of components with IEditorUpdate to the editor update loop
-        /// </summary>
-        private static void SubscribeToEditorUpdateLoop()
-        {
-            for (var index = editorUpdateList.Count - 1; index >= 0; index--)
-            {
-                if (editorUpdateList[index] != null)
-                {
-                    EditorApplication.update += editorUpdateList[index].EditorUpdate;
-                }
-                else
-                {
-                    editorUpdateList.RemoveAt(index);
-                }
-            }
-            
-            //Debug.Log($"Components using IEditorUpdate: {editorUpdateList.Count}");
+            if (updated) { editorUpdateList = newEditorUpdateList; }
+            return updated;
         }
 
         /// <summary>
@@ -105,13 +96,14 @@ namespace Gaskellgames.EditorOnly
         /// </summary>
         private static void UnsubscribeFromEditorUpdateLoop()
         {
-            foreach (IEditorUpdate iEditorUpdate in editorUpdateList)
+            foreach (IEditorUpdate editorUpdate in editorUpdateList)
             {
-                EditorApplication.update -= iEditorUpdate.EditorUpdate;
+                if (!(Object)editorUpdate) { continue; }
+                EditorApplication.update -= editorUpdate.HandleEditorUpdate;
             }
             editorUpdateList.Clear();
             
-            //Debug.Log($"Components using IEditorUpdate: {editorUpdateList.Count}");
+            Debug.Log($"IEditorUpdate: {editorUpdateList.Count}");
         }
 
     } // class end
