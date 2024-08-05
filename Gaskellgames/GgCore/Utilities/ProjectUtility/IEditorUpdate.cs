@@ -1,3 +1,6 @@
+using UnityEngine;
+using UnityEditor;
+
 namespace Gaskellgames
 {
     /// <summary>
