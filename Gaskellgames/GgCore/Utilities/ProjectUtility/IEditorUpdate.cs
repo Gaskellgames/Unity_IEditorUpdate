@@ -1,5 +1,8 @@
 using UnityEngine;
+
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace Gaskellgames
 {
@@ -10,13 +13,15 @@ namespace Gaskellgames
     public interface IEditorUpdate
     {
         /// <summary>
-        /// Calling method for 'EditorUpdate'
+        /// Calling method for 'EditorUpdate' from an EditorOnly script
         /// </summary>
         public void HandleEditorUpdate()
         {
+#if UNITY_EDITOR
             // handle auto unsubscription if null
             if ((Object)this) { EditorUpdate(); }
             else { EditorApplication.update -= HandleEditorUpdate; }
+#endif
         }
         
         /// <summary>
