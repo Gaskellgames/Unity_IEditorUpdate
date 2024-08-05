@@ -7,6 +7,16 @@ namespace Gaskellgames
     public interface IEditorUpdate
     {
         /// <summary>
+        /// Calling method for 'EditorUpdate'
+        /// </summary>
+        public void HandleEditorUpdate()
+        {
+            // handle auto unsubscription if null
+            if ((Object)this) { EditorUpdate(); }
+            else { EditorApplication.update -= HandleEditorUpdate; }
+        }
+        
+        /// <summary>
         /// EditorUpdate is called infrequently, but will try to run multiple times per second
         /// </summary>
         public void EditorUpdate();
